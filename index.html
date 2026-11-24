@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>熱學互動實驗</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 實驗課講義，清楚、親切、數據精確
+   IDEA: 一張實驗桌——左邊是儀器，右邊是記錄紙
+   PICTURE: 燒杯、溫度計、加熱器與會跟著火力變大的火焰
+   COLOUR and TYPE: 白色桌面，火焰橘為重點，水藍／油黃／冰青標示物質；Noto Sans TC
+   LAYOUT: 上方儀器＋圖表兩欄，下方操作列；窄螢幕依序堆疊 */
+:root{color-scheme:light dark;
+--bg:light-dark(#eef1f3,#111418);--card:light-dark(#ffffff,#1a1e24);--ink:light-dark(#16191d,#e9edf1);
+--mute:light-dark(#5b6470,#9aa4b0);--line:light-dark(#dce1e6,#2b313a);--soft:light-dark(#f4f6f8,#20252c);
+--fire:#ff5a1f;--water:#2f8de4;--oil:#d9a010;--ice:#5cc3e8;--ok:light-dark(#0f8a55,#38c98a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans TC",system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1280px;margin:0 auto;padding:clamp(14px,2.4vw,28px)}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px;margin-bottom:14px}
+h1{font-size:clamp(24px,3.2vw,36px);line-height:1.1;margin:0;font-weight:900;text-wrap:balance}
+.formula{margin:0;font-weight:700;font-size:17px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 16px}
+.formula b{color:var(--fire)}
+.lab{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{font-size:17px;margin:0 0 8px;font-weight:700}
+.fig{position:relative}.fig>canvas{position:absolute;inset:0;width:100%;height:100%}
+.app{height:clamp(380px,52vh,500px)}
+.gr{height:clamp(240px,32vh,320px)}
+.power{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--soft);border-radius:12px;padding:10px 12px;margin-top:6px}
+.power label{font-weight:700;white-space:nowrap}
+.power input{flex:1 1 140px}
+.power output{font-weight:900;font-variant-numeric:tabular-nums;color:var(--fire);white-space:nowrap;min-width:6.5em;text-align:right}
+.rd{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.rd div{background:var(--soft);border-radius:10px;padding:8px 10px}
+.rd small{display:block;color:var(--mute);font-size:13px}
+.rd b{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:var(--soft);font-size:14px;font-weight:700}
+td:nth-child(3),th:nth-child(3){text-align:left}
+tbody tr:last-child{background:light-dark(#fff4ee,#2a1f1a)}
+.empty td{text-align:center;color:var(--mute)}
+.ctl{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px}
+.row>span{font-weight:700;white-space:nowrap;width:4.2em}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:44px;padding:0 16px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.seg button[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+input[type=range]{accent-color:var(--fire);height:32px;cursor:pointer}
+input[type=range]:disabled{opacity:.45;cursor:not-allowed}
+#mv{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:4.4em}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btns button{flex:1 1 110px;min-height:52px;border-radius:12px;border:0;font:inherit;font-size:18px;font-weight:900;cursor:pointer;color:#fff}
+#bStart{background:var(--ok)}#bPause{background:#e08a00}#bReset{background:light-dark(#4a5260,#5a6474)}
+.btns button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--fire);outline-offset:2px}
+.hint{min-height:1.5em;margin:8px 0 0;color:var(--fire);font-weight:700;font-size:15px}
+.heat{display:grid;gap:8px}
+.hr{border:1px solid var(--line);border-radius:10px;padding:8px 10px;transition:border-color .2s}
+.hr.on{border-color:var(--fire);background:light-dark(#fff7f2,#261c17)}
+.hr .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:15px}
+.hr .t b{white-space:nowrap}
+.hr .e{color:var(--mute);font-size:14px;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--soft);border-radius:3px;margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--fire);width:0}
+.sum{font-weight:700;padding:4px 2px 0;font-variant-numeric:tabular-nums}
+.note{color:var(--mute);font-size:13px;margin:12px 0 0}
+@media(max-width:900px){.lab,.ctl{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.rd{grid-template-columns:repeat(2,minmax(0,1fr))}.row>span{width:auto}th,td{padding:5px 6px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.hr{transition:none}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tabs button{min-height:48px;padding:0 22px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--fire);border-color:var(--fire);color:#fff}
+[hidden]{display:none!important}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;font-weight:700;margin:-2px 0 6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.htbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-top:4px}
+.htbl table{width:auto}
+.htbl th{position:sticky;left:0;top:auto;text-align:left;background:var(--soft);z-index:1;min-width:6.2em}
+.htbl td{min-width:3.8em;text-align:right;border-left:1px solid var(--line)}
+.htbl td:nth-child(3){text-align:right}
+.htbl tr:last-child{background:none}
+.htbl td.eq{background:light-dark(#e8f7ef,#17301f);font-weight:700}
+.sub2{font-size:16px;margin:4px 0 10px;padding-top:10px;border-top:1px solid var(--line)}
+.sub2:first-child{border-top:0;padding-top:0}
+.rd.b3{grid-template-columns:repeat(4,minmax(0,1fr))}
+.heatbtn{min-height:44px;padding:0 16px;border-radius:10px;border:0;background:var(--fire);color:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+.heatbtn[aria-pressed=true]{background:#8a3a1a}
+.heatbtn:disabled{opacity:.4;cursor:not-allowed}
+.row output{font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:4.6em}
+#eStart{background:var(--ok)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="tabs" role="tablist" aria-label="實驗選單">
+  <button role="tab" id="t-heat" data-tab="heat">🔥 加熱實驗</button>
+  <button role="tab" id="t-bal" data-tab="bal">⚖ 熱平衡實驗</button>
+</nav>
+<div id="tab-heat" role="tabpanel" aria-labelledby="t-heat">
+<header>
+  <h1>加熱實驗：冰、水、油、酒精的溫度變化</h1>
+  <p class="formula"><b>熱量變化量</b> ΔH = 質量 m × 比熱 s × 溫度變化量 ΔT</p>
+</header>
+
+<div class="lab">
+  <section class="card" aria-label="實驗裝置">
+    <div class="fig app"><canvas id="cv" aria-label="燒杯放在加熱器上，溫度計插在燒杯中"></canvas></div>
+    <div class="power">
+      <label for="pw">火力輸出（每秒供熱）</label>
+      <div class="seg"><button id="pm" aria-label="減少火力">－</button></div>
+      <input type="range" id="pw" min="0" max="200" step="5" value="50">
+      <div class="seg"><button id="pp" aria-label="增加火力">＋</button></div>
+      <output id="pwv">50 卡/秒</output>
+    </div>
+    <div class="rd">
+      <div><small>加熱時間</small><b id="rT">0.0 秒</b></div>
+      <div><small>目前溫度</small><b id="rC">−5.0 °C</b></div>
+      <div><small>累積供熱</small><b id="rQ">0 卡</b></div>
+      <div><small>物質狀態</small><b id="rP">固態</b></div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="實驗數據">
+    <h2>溫度－時間關係圖</h2>
+    <div class="fig gr"><canvas id="gc" aria-label="溫度對時間關係圖"></canvas></div>
+    <h2 style="margin-top:14px">每 10 秒溫度紀錄</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>時間（秒）</th><th>溫度（°C）</th><th>狀態</th><th>累積供熱（卡）</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table></div>
+  </section>
+</div>
+
+<div class="ctl">
+  <section class="card" aria-label="實驗設定">
+    <div class="row"><span>物質</span>
+      <div class="seg" id="subs">
+        <button data-s="ice"><i class="sw" style="background:var(--ice)"></i>冰（−5 °C）</button>
+        <button data-s="water"><i class="sw" style="background:var(--water)"></i>水（25 °C）</button>
+        <button data-s="oil"><i class="sw" style="background:var(--oil)"></i>沙拉油（25 °C）</button>
+        <button data-s="alc"><i class="sw" style="background:#8a63d2"></i>酒精（25 °C）</button>
+      </div>
+    </div>
+    <div class="row"><span>質量</span>
+      <input type="range" id="ms" min="0" max="100" step="1" value="100" style="flex:1 1 180px" aria-label="物質質量（公克）">
+      <output id="mv">100 公克</output>
+    </div>
+    <div class="row"><span>播放速度</span>
+      <div class="seg" id="spd">
+        <button data-v="1">1×</button><button data-v="2">2×</button><button data-v="5">5×</button><button data-v="10">10×</button>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="bStart">▶ 開始</button>
+      <button id="bPause">❚❚ 暫停</button>
+      <button id="bReset">↺ 重置</button>
+    </div>
+    <p class="hint" id="hint" role="status"></p>
+    <p class="note">比熱（卡/公克·°C）：水 1.0、冰 0.5、酒精 0.58、沙拉油（大豆油）0.47。冰的熔化熱 80 卡/公克。延伸：水在 100 °C 沸騰，汽化熱 540 卡/公克；酒精在 78 °C 沸騰，汽化熱約 200 卡/公克。<br>假設加熱器的熱量全部被物質吸收（忽略燒杯吸熱與散熱）。</p>
+  </section>
+
+  <section class="card" aria-label="熱量計算">
+    <h2>熱量計算（即時）</h2>
+    <div class="heat" id="heat"></div>
+  </section>
+</div>
+</div>
+<div id="tab-bal" role="tabpanel" aria-labelledby="t-bal" hidden>
+<header>
+  <h1>熱平衡實驗：高溫物體放入低溫液體</h1>
+  <p class="formula"><b>高溫物體放出的熱量</b> ＝ 低溫物體吸收的熱量</p>
+</header>
+
+<div class="lab">
+  <section class="card" aria-label="熱平衡實驗裝置">
+    <div class="fig app"><canvas id="ecv" aria-label="燒杯 A 在加熱器上並插有溫度計，燒杯 B 裝有 100 °C 的物體"></canvas></div>
+    <div class="rd b3">
+      <div><small>混合時間</small><b id="eT">0.0 秒</b></div>
+      <div><small>燒杯 A 溫度</small><b id="eA" style="color:#1f6fd0">25.0 °C</b></div>
+      <div><small>物體 B 溫度</small><b id="eB" style="color:#e0452a">100.0 °C</b></div>
+      <div><small>狀態</small><b id="eS">準備中</b></div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="熱平衡數據">
+    <h2>溫度－時間關係圖</h2>
+    <div class="legend" id="eleg"></div>
+    <div class="fig gr"><canvas id="egc" aria-label="A、B 兩物質的溫度對時間關係圖"></canvas></div>
+    <h2 style="margin-top:14px">每 1 秒溫度紀錄</h2>
+    <div class="htbl"><table><tbody>
+      <tr id="erT"><th>時間（秒）</th></tr>
+      <tr id="erA"><th>T<sub>A</sub>（°C）</th></tr>
+      <tr id="erB"><th>T<sub>B</sub>（°C）</th></tr>
+    </tbody></table></div>
+  </section>
+</div>
+
+<div class="ctl">
+  <section class="card" aria-label="熱平衡實驗設定">
+    <h2 class="sub2">燒杯 A：放溫度計的液體（初溫 25 °C）</h2>
+    <div class="row"><span>液體</span>
+      <div class="seg" id="eAs">
+        <button data-s="water">水</button><button data-s="oil">沙拉油</button><button data-s="alc">酒精</button>
+      </div>
+    </div>
+    <div class="row"><span>質量</span>
+      <input type="range" id="emA" min="0" max="100" step="1" value="100" style="flex:1 1 180px" aria-label="燒杯 A 液體質量（公克）">
+      <output id="emAv">100 公克</output>
+    </div>
+    <div class="row"><span>加熱到</span>
+      <input type="range" id="etg" min="25" max="100" step="1" value="25" style="flex:1 1 180px" aria-label="目標溫度">
+      <output id="etgv">25 °C</output>
+      <button class="heatbtn" id="eheatB" aria-pressed="false">🔥 開始加熱</button>
+    </div>
+    <div class="row"><span>火力</span>
+      <input type="range" id="epw" min="10" max="200" step="10" value="100" style="flex:1 1 180px" aria-label="加熱火力">
+      <output id="epwv">100 卡/秒</output>
+    </div>
+
+    <h2 class="sub2">燒杯 B：100 °C 的高溫物體</h2>
+    <div class="row"><span>物質</span>
+      <div class="seg" id="eBs">
+        <button data-s="water">水</button><button data-s="alc">酒精</button><button data-s="fe">鐵塊</button><button data-s="cu">銅塊</button><button data-s="al">鋁塊</button><button data-s="au">金塊</button><button data-s="ag">銀塊</button>
+      </div>
+    </div>
+    <div class="row"><span>質量</span>
+      <input type="range" id="emB" min="0" max="100" step="1" value="100" style="flex:1 1 180px" aria-label="燒杯 B 物體質量（公克）">
+      <output id="emBv">100 公克</output>
+    </div>
+    <div class="row"><span>播放速度</span>
+      <div class="seg" id="espd">
+        <button data-v="0.5">0.5×</button><button data-v="1">1×</button><button data-v="2">2×</button><button data-v="5">5×</button>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="eStart">▶ 開始加入</button>
+      <button id="ePause" style="background:#e08a00">❚❚ 暫停</button>
+      <button id="eReset" style="background:light-dark(#4a5260,#5a6474)">↺ 重置</button>
+    </div>
+    <p class="hint" id="ehint" role="status"></p>
+    <p class="note">比熱（卡/公克·°C）：水 1.0、酒精 0.58、沙拉油 0.47、鋁 0.211、鐵 0.113、銅 0.092、銀 0.056、金 0.031。<br>假設只有 A、B 之間交換熱量（忽略燒杯吸熱、散熱與汽化）。酒精沸點約 78 °C，常壓下實際無法到 100 °C，這裡當作理想情況。</p>
+  </section>
+
+  <section class="card" aria-label="熱平衡計算">
+    <h2>熱量計算（即時）</h2>
+    <div class="heat" id="eheat"></div>
+  </section>
+</div>
+</div>
+
+</div>
+
+<script>
+{
+const SUB={
+  ice:{name:'冰',t0:-5,col:'#5cc3e8'},
+  water:{name:'水',t0:25,col:'#2f8de4'},
+  oil:{name:'沙拉油',t0:25,col:'#d9a010'},
+  alc:{name:'酒精',t0:25,col:'#8a63d2'}
+};
+const C_ICE=0.5,C_WATER=1,C_OIL=0.47,C_ALC=0.58,LF=80,OILMAX=200,DT=0.05;
+const cOf=()=>sub==='oil'?C_OIL:sub==='alc'?C_ALC:C_WATER;
+const topOf=()=>sub==='oil'?OILMAX:sub==='alc'?78:100;
+const lvOf=()=>sub==='alc'?200:540;
+const PN={solid:'固態（冰）',melting:'熔化中',liquid:'液態',boiling:'沸騰中'};
+let sub='ice',mass=100,P=50,speed=1,run=false,S;
+const $=id=>document.getElementById(id);
+const f1=v=>(Math.round(v*10)/10).toFixed(1).replace('-','−');
+const fi=v=>Math.round(v).toLocaleString('zh-TW');
+
+function phaseLabel(){
+  if(S.done==='dry')return '已全部汽化';
+  if(S.done==='oil')return '油溫過高停止';
+  if(sub!=='ice'&&S.phase==='liquid')return sub==='oil'?'液態（油）':sub==='alc'?'液態（酒精）':'液態（水）';
+  if(sub==='ice'&&S.phase==='liquid')return '液態（水）';
+  return PN[S.phase];
+}
+function reset(){
+  run=false;
+  S={n:0,T:SUB[sub].t0,phase:sub==='ice'?'solid':'liquid',melted:0,vap:0,Q:0,q:[0,0,0,0],pts:[],rec:[],done:''};
+  S.pts.push({t:0,T:S.T,p:S.phase});
+  $('tb').innerHTML='';
+  addRec();
+  hint('');
+  ui();
+}
+function addRec(){
+  const r={t:S.n*DT,T:S.T,p:phaseLabel(),Q:S.Q};S.rec.push(r);
+  const tb=$('tb');
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${Math.round(r.t)}</td><td>${f1(r.T)}</td><td>${r.p}</td><td>${fi(r.Q)}</td></tr>`);
+  const box=tb.closest('.tbl');box.scrollTop=box.scrollHeight;
+}
+function step(){
+  let q=P*DT;S.Q+=q;
+  let guard=0;
+  while(q>1e-12&&!S.done&&guard++<6){
+    if(S.phase==='solid'){
+      const C=mass*C_ICE,need=C*(0-S.T);
+      if(q<need){S.T+=q/C;S.q[0]+=q;q=0}else{S.T=0;S.q[0]+=need;q-=need;S.phase='melting'}
+    }else if(S.phase==='melting'){
+      const need=(mass-S.melted)*LF;
+      if(q<need){S.melted+=q/LF;S.q[1]+=q;q=0}else{S.melted=mass;S.q[1]+=need;q-=need;S.phase='liquid'}
+    }else if(S.phase==='liquid'){
+      const c=cOf(),C=mass*c,top=topOf(),need=C*(top-S.T);
+      if(q<need){S.T+=q/C;S.q[2]+=q;q=0}else{S.T=top;S.q[2]+=need;q-=need;if(sub==='oil'){S.done='oil'}else S.phase='boiling'}
+    }else if(S.phase==='boiling'){
+      const LV=lvOf(),need=(mass-S.vap)*LV;
+      if(q<need){S.vap+=q/LV;S.q[3]+=q;q=0}else{S.vap=mass;S.q[3]+=need;q-=need;S.done='dry'}
+    }
+  }
+  if(S.done)S.Q-=q;
+  S.n++;
+  if(S.n%10===0||S.done)S.pts.push({t:S.n*DT,T:S.T,p:S.phase});
+  if(S.n%200===0)addRec();
+  if(S.done){
+    run=false;
+    if(S.n%200!==0)addRec();
+    hint(S.done==='oil'?`油溫已達 ${OILMAX} °C，為了安全自動停止加熱（按「重置」重新實驗）。`:`${sub==='alc'?'酒精':'水'}已全部汽化，實驗結束（按「重置」重新實驗）。`);
+  }
+}
+
+/* ---------- 介面 ---------- */
+function hint(t){$('hint').textContent=t}
+function ui(){
+  const started=S.n>0;
+  document.querySelectorAll('#subs button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.s===sub);b.disabled=started});
+  document.querySelectorAll('#spd button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===speed));
+  $('ms').disabled=started;
+  $('mv').textContent=mass+' 公克';
+  $('pw').value=P;$('pwv').textContent=P+' 卡/秒';
+  $('bStart').disabled=run||!!S.done;
+  $('bPause').disabled=!run;
+  $('bStart').textContent=started&&!run&&!S.done?'▶ 繼續':'▶ 開始';
+}
+function readouts(){
+  $('rT').textContent=f1(S.n*DT)+' 秒';
+  $('rC').textContent=f1(S.T)+' °C';
+  $('rQ').textContent=fi(S.Q)+' 卡';
+  $('rP').textContent=phaseLabel();
+  heatPanel();
+}
+function heatPanel(){
+  const m=mass,rows=[];
+  const on=k=>!S.done&&S.phase===k;
+  if(sub==='ice'){
+    const d1=S.phase==='solid'?S.T+5:5;
+    rows.push(['① 冰升溫 −5 → 0 °C',`H₁ = m × 0.5 × ΔT = ${m} × 0.5 × ${f1(d1)}`,S.q[0],m*C_ICE*5,on('solid')]);
+    rows.push(['② 冰熔化（0 °C，溫度不變）',`H₂ = 熔化質量 × 80 = ${f1(S.melted)} × 80`,S.q[1],m*LF,on('melting')]);
+    const d3=(S.phase==='liquid'||S.phase==='boiling'||S.done)?S.T:0;
+    rows.push(['③ 水升溫 0 → 100 °C',`H₃ = m × 1 × ΔT = ${m} × 1 × ${f1(d3)}`,S.q[2],m*100,on('liquid')]);
+    rows.push(['④ 沸騰汽化（延伸，100 °C）',`H₄ = 汽化質量 × 540 = ${f1(S.vap)} × 540`,S.q[3],m*540,on('boiling')]);
+  }else if(sub==='alc'){
+    rows.push(['① 酒精升溫 25 → 78 °C',`H = m × 0.58 × ΔT = ${m} × 0.58 × ${f1(S.T-25)}`,S.q[2],m*C_ALC*53,on('liquid')]);
+    rows.push(['② 沸騰汽化（延伸，78 °C）',`H = 汽化質量 × 200 = ${f1(S.vap)} × 200`,S.q[3],m*200,on('boiling')]);
+  }else if(sub==='water'){
+    rows.push(['① 水升溫 25 → 100 °C',`H = m × 1 × ΔT = ${m} × 1 × ${f1(S.T-25)}`,S.q[2],m*75,on('liquid')]);
+    rows.push(['② 沸騰汽化（延伸，100 °C）',`H = 汽化質量 × 540 = ${f1(S.vap)} × 540`,S.q[3],m*540,on('boiling')]);
+  }else{
+    rows.push([`① 沙拉油升溫 25 → ${OILMAX} °C`,`H = m × 0.47 × ΔT = ${m} × 0.47 × ${f1(S.T-25)}`,S.q[2],m*C_OIL*(OILMAX-25),on('liquid')]);
+  }
+  const sum=S.q.reduce((a,b)=>a+b,0);
+  $('heat').innerHTML=rows.map(r=>`<div class="hr${r[4]&&S.n>0?' on':''}"><div class="t"><span>${r[0]}</span><b>${fi(r[2])} 卡</b></div><div class="e">${r[1]}</div><div class="bar"><i style="width:${r[3]?Math.min(100,r[2]/r[3]*100):0}%"></i></div></div>`).join('')
+    +`<div class="sum">合計 ${fi(sum)} 卡 ＝ 加熱器總供熱 ${fi(S.Q)} 卡${m===0?'':(S.n>0?' ✔':'')}</div>`;
+}
+
+/* ---------- 實驗裝置繪圖 ---------- */
+const cv=$('cv'),cx=cv.getContext('2d');
+const bubbles=[];
+function sizeCanvas(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);return {w:r.width,h:r.height,d}}
+let A={w:1,h:1,d:1},G={w:1,h:1,d:1};
+const ro1=new ResizeObserver(()=>{A=sizeCanvas(cv)});ro1.observe(cv);
+const gcv=$('gc'),gx=gcv.getContext('2d');
+const ro2=new ResizeObserver(()=>{G=sizeCanvas(gcv)});ro2.observe(gcv);
+const dark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
+
+function drawApp(ts){
+  const c=cx,dk=dark();
+  const BW=440,BH=500,sc=Math.min(A.w/BW,A.h/BH),ox=(A.w-BW*sc)/2,oy=(A.h-BH*sc)/2;
+  c.setTransform(A.d,0,0,A.d,0,0);c.clearRect(0,0,A.w,A.h);
+  c.setTransform(A.d*sc,0,0,A.d*sc,A.d*ox,A.d*oy);
+  const ink=dk?'#e9edf1':'#16191d',mute=dk?'#9aa4b0':'#5b6470';
+  c.font='500 14px "Noto Sans TC",sans-serif';
+  // 桌面
+  c.fillStyle=dk?'#23282f':'#e3e7eb';c.fillRect(0,478,BW,22);
+  // 加熱器
+  const hx=95,hy=340,hw=250,hh=138;
+  c.fillStyle=dk?'#2f3540':'#3b424d';rr(c,hx,hy,hw,hh,14);c.fill();
+  c.fillStyle=dk?'#3d4552':'#525b68';rr(c,hx+6,hy+6,hw-12,10,5);c.fill();
+  // 電子儀表
+  c.fillStyle='#0d1a10';rr(c,hx+22,hy+30,hw-44,58,8);c.fill();
+  c.fillStyle='#7dff9a';c.font='700 30px "Noto Sans TC",sans-serif';c.textAlign='right';c.textBaseline='middle';
+  c.fillText(String(P),hx+hw-92,hy+60);
+  c.font='500 15px "Noto Sans TC",sans-serif';c.textAlign='left';c.fillText('卡/秒',hx+hw-84,hy+62);
+  c.fillStyle='#3e7a4b';c.font='500 12px "Noto Sans TC",sans-serif';c.fillText('每秒供熱',hx+30,hy+44);
+  // 指示燈
+  c.fillStyle=run&&P>0?'#ff5a1f':'#5a2b20';c.beginPath();c.arc(hx+34,hy+112,6,0,7);c.fill();
+  c.fillStyle='#c8ced6';c.font='500 13px "Noto Sans TC",sans-serif';c.fillText('加熱器',hx+48,hy+113);
+  // 火力刻度
+  for(let i=0;i<10;i++){c.fillStyle=i<Math.round(P/20)?'#ff7a3d':'#4b535f';rr(c,hx+130+i*10,hy+106,7,12,2);c.fill()}
+  // 腳架與陶瓷纖維網
+  c.strokeStyle=dk?'#8d96a3':'#6b7380';c.lineWidth=4;c.lineCap='round';
+  c.beginPath();c.moveTo(130,262);c.lineTo(112,hy);c.moveTo(310,262);c.lineTo(328,hy);c.stroke();
+  c.fillStyle=dk?'#59616d':'#9aa2ad';c.fillRect(110,258,220,6);
+  // 火焰
+  const fr=P/200;
+  if(run&&P>0){
+    const n=3+Math.round(fr*5);
+    for(let i=0;i<n;i++){
+      const x=220+(i-(n-1)/2)*(150/Math.max(n,1))*0.9;
+      const h=(16+62*fr)*(0.82+0.18*Math.sin(ts/85+i*1.9));
+      const w=9+8*fr;
+      const g=c.createLinearGradient(0,hy,0,hy-h);
+      g.addColorStop(0,'#2f6bff');g.addColorStop(0.18,'#ffd23f');g.addColorStop(0.6,'#ff7a1f');g.addColorStop(1,'rgba(255,60,20,0)');
+      c.fillStyle=g;c.beginPath();c.moveTo(x-w,hy);
+      c.quadraticCurveTo(x-w*0.9,hy-h*0.55,x+Math.sin(ts/120+i)*3,hy-h);
+      c.quadraticCurveTo(x+w*0.9,hy-h*0.55,x+w,hy);c.closePath();c.fill();
+    }
+  }
+  // 燒杯
+  const bx=150,bw=140,bb=256,btop=60,pxml=150/150*1.1;
+  const water=sub==='oil'||sub==='alc'?0:(sub==='ice'?S.melted-S.vap:mass-S.vap);
+  const oil=sub==='oil'?mass:sub==='alc'?(mass-S.vap)*0.92/0.79:0;
+  const solid=sub==='ice'?mass-S.melted:0;
+  const liqVol=Math.max(0,water)+oil/0.92;
+  const lh=liqVol*pxml;
+  if(lh>0.3){
+    const col=sub==='oil'?'rgba(222,168,16,.78)':sub==='alc'?'rgba(160,130,230,.5)':'rgba(47,141,228,.55)';
+    c.fillStyle=col;c.fillRect(bx+3,bb-lh,bw-6,lh-2);
+    c.fillStyle=sub==='oil'?'rgba(255,220,110,.6)':sub==='alc'?'rgba(210,195,250,.7)':'rgba(170,215,255,.7)';c.fillRect(bx+3,bb-lh,bw-6,3);
+  }
+  // 冰塊
+  if(solid>0.01){
+    const N=Math.max(1,Math.ceil(mass/10)),frac=solid/mass,s=24*(0.45+0.55*Math.sqrt(frac));
+    for(let i=0;i<N;i++){
+      const col=i%4,row=Math.floor(i/4);
+      const x=bx+12+col*31+(row%2)*8,y=bb-6-s-row*(s+4)-(lh>s?Math.min(lh-s,10):0);
+      c.fillStyle=S.T<0?'rgba(220,245,255,.95)':'rgba(200,238,252,.85)';rr(c,x,y,s,s,4);c.fill();
+      c.strokeStyle='rgba(92,195,232,.9)';c.lineWidth=1.5;c.stroke();
+      c.fillStyle='rgba(255,255,255,.9)';c.fillRect(x+3,y+3,s*0.3,2);
+    }
+  }
+  // 氣泡
+  const boiling=S.phase==='boiling'&&!S.done&&run&&P>0;
+  const warm=sub!=='oil'&&S.phase==='liquid'&&S.T>(sub==='alc'?60:70)&&run&&P>0;
+  if((boiling||warm)&&lh>8&&Math.random()<(boiling?0.6+fr:0.12))bubbles.push({x:bx+12+Math.random()*(bw-24),y:bb-4,r:boiling?2+Math.random()*4:1.5,v:boiling?1.2+Math.random()*1.5:0.6});
+  c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=1.2;
+  for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];b.y-=b.v;b.x+=Math.sin(b.y/6)*0.3;if(b.y<bb-lh+3||lh<8){bubbles.splice(i,1);continue}c.beginPath();c.arc(b.x,b.y,b.r,0,7);c.stroke()}
+  // 蒸氣
+  if(boiling){c.strokeStyle=dk?'rgba(220,230,240,.35)':'rgba(120,135,150,.35)';c.lineWidth=3;
+    for(let i=0;i<3;i++){const x=bx+35+i*35,t=ts/400+i;c.beginPath();c.moveTo(x,btop-4);c.bezierCurveTo(x+10*Math.sin(t),btop-20,x-10*Math.sin(t),btop-34,x+6*Math.sin(t+1),btop-48);c.stroke()}}
+  // 燒杯玻璃
+  c.strokeStyle=dk?'#b9c6d3':'#6f7f90';c.lineWidth=3;c.lineJoin='round';
+  c.beginPath();c.moveTo(bx-6,btop-4);c.lineTo(bx,btop);c.lineTo(bx,bb-6);c.quadraticCurveTo(bx,bb,bx+6,bb);c.lineTo(bx+bw-6,bb);c.quadraticCurveTo(bx+bw,bb,bx+bw,bb-6);c.lineTo(bx+bw,btop);c.stroke();
+  c.fillStyle=dk?'rgba(200,220,240,.06)':'rgba(180,210,235,.12)';c.fillRect(bx,btop,bw,bb-btop);
+  c.strokeStyle=mute;c.lineWidth=1.2;c.font='500 11px "Noto Sans TC",sans-serif';c.fillStyle=mute;c.textAlign='left';
+  for(let v=25;v<=150;v+=25){const y=bb-v*pxml;c.beginPath();c.moveTo(bx+3,y);c.lineTo(bx+(v%50?10:18),y);c.stroke();if(v%50===0)c.fillText(v+' mL',bx+21,y+1)}
+  // 溫度計
+  const tx=262,tTop=22,tBot=238,tMin=-10,tMax=sub==='oil'?220:110;
+  const ty=T=>tBot-12-(T-tMin)/(tMax-tMin)*(tBot-12-tTop-8);
+  c.fillStyle=dk?'#e6edf3':'#ffffff';rr(c,tx-6,tTop,12,tBot-tTop,6);c.fill();c.strokeStyle=mute;c.lineWidth=1.5;c.stroke();
+  c.fillStyle='#e0302a';c.beginPath();c.arc(tx,tBot,9,0,7);c.fill();
+  const ct=ty(Math.max(tMin,Math.min(tMax,S.T)));c.fillRect(tx-2.5,ct,5,tBot-ct);
+  c.strokeStyle=mute;c.lineWidth=1;c.fillStyle=mute;c.font='500 10px "Noto Sans TC",sans-serif';c.textAlign='left';c.textBaseline='middle';
+  const stp=sub==='oil'?20:10;
+  for(let v=Math.ceil(tMin/stp)*stp;v<=tMax;v+=stp){const y=ty(v);c.beginPath();c.moveTo(tx+6,y);c.lineTo(tx+(v%50===0||(sub==='oil'&&v%100===0)?12:9),y);c.stroke();if(v%(sub==='oil'?100:50)===0&&(y<btop-6||v<=tMax))c.fillText(v+'',tx+14,y)}
+  // 溫度讀數框
+  c.fillStyle=dk?'#2a1f1a':'#fff1ea';rr(c,tx+40,8,112,40,10);c.fill();c.strokeStyle='#ff5a1f';c.lineWidth=1.5;c.stroke();
+  c.fillStyle='#ff5a1f';c.font='900 20px "Noto Sans TC",sans-serif';c.textAlign='center';c.fillText(f1(S.T)+' °C',tx+96,29);
+  // 名稱
+  c.fillStyle=ink;c.font='700 14px "Noto Sans TC",sans-serif';c.textAlign='right';
+  c.fillText('燒杯',bx-14,150);c.fillText('溫度計',tx-14,30);c.fillText('陶瓷纖維網',bx-30,262);
+  c.textAlign='left';c.font='500 13px "Noto Sans TC",sans-serif';c.fillStyle=mute;
+  const desc=mass===0?'燒杯是空的':`${SUB[sub].name} ${mass} 公克`+(sub==='ice'&&S.melted>0.05&&solid>0.01?`（冰 ${f1(solid)} g＋水 ${f1(S.melted)} g）`:'')+(S.vap>0.05?`，已汽化 ${f1(S.vap)} g`:'');
+  c.textAlign='center';c.fillText(desc,bx+bw/2,bb+22);
+}
+
+/* ---------- 溫度－時間圖 ---------- */
+function nice(range,max){const st=[1,2,5,10,20,25,50,100,200,300,600,1200];return st.find(s=>range/s<=max)||st[st.length-1]}
+function drawGraph(){
+  const c=gx,W=G.w,H=G.h,dk=dark(),mute=dk?'#9aa4b0':'#5b6470',line=dk?'#2b313a':'#e1e5ea',ink=dk?'#e9edf1':'#16191d';
+  c.setTransform(G.d,0,0,G.d,0,0);c.clearRect(0,0,W,H);
+  const L=48,R=14,T=14,B=38,pw=W-L-R,ph=H-T-B;
+  const t=S.n*DT,tMaxRaw=Math.max(60,t*1.08),xs=nice(tMaxRaw,W<520?5:8),xMax=Math.ceil(tMaxRaw/xs)*xs;
+  let lo=Math.min(...S.pts.map(p=>p.T),SUB[sub].t0),hi=Math.max(...S.pts.map(p=>p.T));
+  let yMin=lo<0?-10:0,yMax=Math.max(hi+10,SUB[sub].t0+20,40);
+  const ys=nice(yMax-yMin,7);yMin=Math.floor(yMin/ys)*ys;yMax=Math.ceil(yMax/ys)*ys;
+  const X=v=>L+v/xMax*pw,Y=v=>T+ph-(v-yMin)/(yMax-yMin)*ph;
+  // 階段底色
+  const shade={melting:'rgba(92,195,232,.16)',boiling:'rgba(255,90,31,.12)'};
+  let segStart=null,segP=null;
+  const flush=(endT)=>{if(segP&&shade[segP]){c.fillStyle=shade[segP];c.fillRect(X(segStart),T,X(endT)-X(segStart),ph);
+    if(X(endT)-X(segStart)>44){c.fillStyle=mute;c.font='500 12px "Noto Sans TC",sans-serif';c.textAlign='center';c.fillText(segP==='melting'?'熔化':'沸騰',(X(segStart)+X(endT))/2,T+14)}}};
+  S.pts.forEach(p=>{if(p.p!==segP){flush(p.t);segStart=p.t;segP=p.p}});flush(t);
+  // 格線
+  c.strokeStyle=line;c.lineWidth=1;c.fillStyle=mute;c.font='500 12px "Noto Sans TC",sans-serif';c.textBaseline='middle';
+  for(let v=yMin;v<=yMax+1e-9;v+=ys){c.beginPath();c.moveTo(L,Y(v));c.lineTo(L+pw,Y(v));c.stroke();c.textAlign='right';c.fillText(String(v).replace('-','−'),L-6,Y(v))}
+  c.textBaseline='top';
+  for(let v=0;v<=xMax+1e-9;v+=xs){c.beginPath();c.moveTo(X(v),T);c.lineTo(X(v),T+ph);c.stroke();c.textAlign='center';c.fillText(v,X(v),T+ph+5)}
+  // 0、100 °C 參考線
+  c.setLineDash([5,4]);c.strokeStyle=mute;
+  [0,100].forEach(v=>{if(v>yMin&&v<yMax){c.beginPath();c.moveTo(L,Y(v));c.lineTo(L+pw,Y(v));c.stroke()}});c.setLineDash([]);
+  c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.moveTo(L,T);c.lineTo(L,T+ph);c.lineTo(L+pw,T+ph);c.stroke();
+  c.fillStyle=mute;c.textAlign='right';c.textBaseline='bottom';c.fillText('時間（秒）',L+pw,H-1);
+  c.save();c.translate(12,T+ph/2);c.rotate(-Math.PI/2);c.textAlign='center';c.textBaseline='middle';c.fillText('溫度（°C）',0,0);c.restore();
+  // 曲線
+  c.strokeStyle=SUB[sub].col;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();
+  S.pts.forEach((p,i)=>i?c.lineTo(X(p.t),Y(p.T)):c.moveTo(X(p.t),Y(p.T)));c.lineTo(X(t),Y(S.T));c.stroke();
+  // 每 10 秒紀錄點
+  c.fillStyle=dk?'#1a1e24':'#fff';c.strokeStyle=SUB[sub].col;c.lineWidth=2;
+  S.rec.forEach(r=>{c.beginPath();c.arc(X(r.t),Y(r.T),3.2,0,7);c.fill();c.stroke()});
+  c.fillStyle='#ff5a1f';c.beginPath();c.arc(X(t),Y(S.T),4.5,0,7);c.fill();
+}
+
+/* ---------- 事件 ---------- */
+document.querySelectorAll('#subs button').forEach(b=>b.addEventListener('click',()=>{if(S.n>0)return;sub=b.dataset.s;reset()}));
+document.querySelectorAll('#spd button').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.v;ui()}));
+$('ms').addEventListener('input',e=>{if(S.n>0)return;mass=+e.target.value;reset()});
+const setP=v=>{P=Math.max(0,Math.min(200,v));ui()};
+$('pw').addEventListener('input',e=>setP(+e.target.value));
+$('pm').addEventListener('click',()=>setP(P-5));
+$('pp').addEventListener('click',()=>setP(P+5));
+$('bStart').addEventListener('click',()=>{
+  if(mass===0){hint('請先把質量調到大於 0 公克。');return}
+  if(S.done)return;
+  if(P===0)hint('目前火力是 0 卡/秒，溫度不會改變；可調高火力輸出。');else hint('');
+  run=true;ui();
+});
+$('bPause').addEventListener('click',()=>{run=false;ui()});
+$('bReset').addEventListener('click',()=>reset());
+
+let last=0,acc=0,prevRun=false;
+function frame(ts){
+  const dt=last?Math.min(0.1,(ts-last)/1000):0;last=ts;
+  if(run){acc+=dt*speed;let k=0;while(acc>=DT&&run&&k<4000){step();acc-=DT;k++}}else acc=0;
+  if(prevRun!==run){ui();prevRun=run}
+  if(document.body.dataset.tab==='heat'){readouts();drawApp(ts);drawGraph();}
+  requestAnimationFrame(frame);
+}
+reset();
+requestAnimationFrame(frame);
+}
+</script>
+<script>
+{
+/* ---------- 分頁 ---------- */
+const tabs={heat:'tab-heat',bal:'tab-bal'};
+function showTab(){
+  const k=location.hash==='#balance'?'bal':'heat';
+  document.body.dataset.tab=k;
+  for(const t in tabs){document.getElementById(tabs[t]).hidden=t!==k;document.getElementById('t-'+t).setAttribute('aria-selected',t===k)}
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  const h=b.dataset.tab==='bal'?'#balance':'#heating';
+  if(location.hash!==h)location.hash=h;else showTab();
+}));
+addEventListener('hashchange',showTab);
+showTab();
+}
+</script>
+<script>
+{
+const $=id=>document.getElementById(id);
+const f1=v=>(Math.round(v*10)/10).toFixed(1).replace('-','−');
+const fi=v=>Math.round(v).toLocaleString('zh-TW');
+const fs=v=>{const r=Math.round(v*1000)/1000;return String(r)};
+const LQ={
+  water:{n:'水',c:1,d:1,max:100,fill:'rgba(47,141,228,.55)'},
+  oil:{n:'沙拉油',c:0.47,d:0.92,max:150,fill:'rgba(222,168,16,.78)'},
+  alc:{n:'酒精',c:0.58,d:0.79,max:78,fill:'rgba(160,130,230,.45)'}
+};
+const OB={
+  water:{n:'水',c:1,d:1,liq:1,fill:'rgba(47,141,228,.6)'},
+  alc:{n:'酒精',c:0.58,d:0.79,liq:1,fill:'rgba(160,130,230,.55)'},
+  fe:{n:'鐵塊',c:0.113,d:7.87,top:'#8a9098',side:'#5d636b'},
+  cu:{n:'銅塊',c:0.092,d:8.96,top:'#d98a5a',side:'#a5552c'},
+  al:{n:'鋁塊',c:0.211,d:2.70,top:'#e3e7ec',side:'#aab2bc'},
+  au:{n:'金塊',c:0.031,d:19.3,top:'#f3cf4a',side:'#c99a12'},
+  ag:{n:'銀塊',c:0.056,d:10.5,top:'#f1f3f6',side:'#b9c0c8'}
+};
+const CA='#1f6fd0',CB='#e0452a',T0A=25,T0B=100;
+let E;
+const cfg={a:'water',mA:100,b:'fe',mB:100,P:100,target:25,speed:1};
+
+function eReset(){
+  E={phase:'setup',run:false,heat:false,TA:T0A,TB:T0B,TA0:T0A,t:0,pour:0,pts:[],next:0,teq:null,Tf:0,tau:4};
+  for(const id of ['erT','erA','erB']){const r=$(id);while(r.cells.length>1)r.deleteCell(1)}
+  hint('');ui();
+}
+function hint(t){$('ehint').textContent=t}
+function caps(){return {cA:cfg.mA*LQ[cfg.a].c,cB:cfg.mB*OB[cfg.b].c}}
+function temps(t){const k=Math.exp(-t/E.tau);return {A:E.Tf+(E.TA0-E.Tf)*k,B:E.Tf+(T0B-E.Tf)*k}}
+function addCol(t,A,B,eq){
+  const mk=(id,v)=>{const c=$(id).insertCell(-1);c.textContent=v;if(eq)c.className='eq'};
+  mk('erT',Math.round(t));mk('erA',f1(A));mk('erB',f1(B));
+  const box=$('erT').closest('.htbl');box.scrollLeft=box.scrollWidth;
+}
+function stateLabel(){
+  if(E.phase==='setup')return E.heat?'加熱 A 中':'準備中';
+  if(E.phase==='pour')return '加入中';
+  if(E.phase==='done')return '已達熱平衡';
+  return E.teq!==null?'已達熱平衡':(E.run?'熱量傳遞中':'暫停');
+}
+function ui(){
+  const set=E.phase==='setup';
+  document.querySelectorAll('#eAs button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.s===cfg.a);b.disabled=!set||E.heat});
+  document.querySelectorAll('#eBs button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.s===cfg.b);b.disabled=!set});
+  document.querySelectorAll('#espd button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===cfg.speed));
+  $('emA').disabled=$('emB').disabled=!set;
+  $('emAv').textContent=cfg.mA+' 公克';$('emBv').textContent=cfg.mB+' 公克';
+  const mx=LQ[cfg.a].max;$('etg').max=mx;if(cfg.target>mx)cfg.target=mx;$('etg').value=cfg.target;$('etgv').textContent=cfg.target+' °C';
+  $('etg').disabled=!set;$('epw').disabled=!set;$('epw').value=cfg.P;$('epwv').textContent=cfg.P+' 卡/秒';
+  $('eheatB').disabled=!set;$('eheatB').setAttribute('aria-pressed',E.heat);$('eheatB').textContent=E.heat?'■ 停止加熱':'🔥 開始加熱';
+  $('eStart').disabled=E.run||E.phase==='pour'||E.phase==='done';
+  $('eStart').textContent=E.phase==='mix'&&!E.run?'▶ 繼續':'▶ 開始加入';
+  $('ePause').disabled=!(E.run||E.heat);
+  $('eleg').innerHTML=`<span><i style="background:${CA}"></i>A：${LQ[cfg.a].n} ${cfg.mA} g</span><span><i style="background:${CB}"></i>B：${OB[cfg.b].n} ${cfg.mB} g</span>`;
+}
+
+/* ---------- 時間推進 ---------- */
+function tick(dt){
+  if(E.an)anim(dt);
+  if(E.phase==='setup'&&E.heat){
+    if(cfg.mA<=0){E.heat=false;hint('燒杯 A 沒有液體，無法加熱。');ui();return}
+    E.TA+=cfg.P*dt*cfg.speed/(cfg.mA*LQ[cfg.a].c);
+    if(E.TA>=cfg.target){E.TA=Math.max(cfg.target,T0A);E.heat=false;hint(`燒杯 A 已加熱到 ${f1(E.TA)} °C，停止加熱。`);ui()}
+    E.TA0=E.TA;
+  }else if(E.phase==='mix'&&E.run){
+    E.t+=dt*cfg.speed;
+    const T=temps(E.t);E.TA=T.A;E.TB=T.B;
+    if(E.teq===null&&Math.abs(T.A-T.B)<0.05){E.teq=E.t;hint(`約 ${Math.round(E.t)} 秒後達到熱平衡，兩者溫度都是 ${f1(E.Tf)} °C。`)}
+    while(E.next<=E.t+1e-9){const s=temps(E.next);addCol(E.next,s.A,s.B,Math.abs(s.A-s.B)<0.05);E.next++}
+    const lp=E.pts[E.pts.length-1];if(E.t-lp.t>=0.1)E.pts.push({t:E.t,A:T.A,B:T.B});
+    if(E.teq!==null&&E.t>=E.teq+5){E.phase='done';E.run=false;E.pts.push({t:E.t,A:T.A,B:T.B});ui()}
+  }
+}
+function startMix(){
+  if(E.phase==='mix'){E.run=true;hint('');ui();return}
+  if(cfg.mA<=0||cfg.mB<=0){hint('請先把 A、B 的質量都調到大於 0 公克。');return}
+  E.heat=false;E.TA0=E.TA;
+  const {cA,cB}=caps();
+  E.Tf=(cA*E.TA0+cB*T0B)/(cA+cB);
+  E.tau=OB[cfg.b].liq?2.5:4;
+  E.pts=[{t:0,A:E.TA0,B:T0B}];E.next=0;E.t=0;E.teq=null;
+  E.phase='pour';startPour();hint(E.TA0>T0B?'A 的溫度比 B 高，這次熱量會從 A 傳到 B。':'');ui();
+}
+
+/* ---------- 熱量計算面板 ---------- */
+function heatPanel(){
+  const sA=LQ[cfg.a].c,sB=OB[cfg.b].c,{cA,cB}=caps();
+  const box=$('eheat');
+  if(E.phase==='setup'||E.phase==='pour'){
+    const tf=cA+cB>0?(cA*E.TA+cB*T0B)/(cA+cB):0;
+    box.innerHTML=`<div class="hr${E.heat?' on':''}"><div class="t"><span>加熱燒杯 A（${LQ[cfg.a].n}）</span><b>${fi(cfg.mA*sA*(E.TA-T0A))} 卡</b></div><div class="e">H = m × s × ΔT = ${cfg.mA} × ${fs(sA)} × (${f1(E.TA)} − 25)</div></div>
+    <div class="hr"><div class="t"><span>預測平衡溫度</span><b>${cA+cB>0?f1(tf)+' °C':'—'}</b></div><div class="e">T = (m<sub>A</sub>s<sub>A</sub>T<sub>A</sub> + m<sub>B</sub>s<sub>B</sub>T<sub>B</sub>) ÷ (m<sub>A</sub>s<sub>A</sub> + m<sub>B</sub>s<sub>B</sub>)<br>= (${cfg.mA}×${fs(sA)}×${f1(E.TA)} + ${cfg.mB}×${fs(sB)}×100) ÷ (${cfg.mA}×${fs(sA)} + ${cfg.mB}×${fs(sB)})</div></div>
+    <div class="sum">比較：A 每升高 1 °C 需 ${f1(cA)} 卡；B 每降低 1 °C 放出 ${f1(cB)} 卡</div>`;
+    return;
+  }
+  const QA=cfg.mA*sA*(E.TA-E.TA0),QB=cfg.mB*sB*(T0B-E.TB);
+  const aGain=QA>=0;
+  const pct=v=>Math.min(100,Math.abs(v)/Math.max(1,Math.abs(cfg.mA*sA*(E.Tf-E.TA0)))*100);
+  box.innerHTML=`<div class="hr on"><div class="t"><span>B（${OB[cfg.b].n} ${cfg.mB} g）${aGain?'放出':'吸收'}熱量</span><b>${fi(Math.abs(QB))} 卡</b></div><div class="e">H = m × s × ΔT = ${cfg.mB} × ${fs(sB)} × |100 − ${f1(E.TB)}|</div><div class="bar"><i style="width:${pct(QB)}%;background:${CB}"></i></div></div>
+  <div class="hr on"><div class="t"><span>A（${LQ[cfg.a].n} ${cfg.mA} g）${aGain?'吸收':'放出'}熱量</span><b>${fi(Math.abs(QA))} 卡</b></div><div class="e">H = m × s × ΔT = ${cfg.mA} × ${fs(sA)} × |${f1(E.TA)} − ${f1(E.TA0)}|</div><div class="bar"><i style="width:${pct(QA)}%;background:${CA}"></i></div></div>
+  <div class="hr${E.teq!==null?' on':''}"><div class="t"><span>理論平衡溫度</span><b>${f1(E.Tf)} °C</b></div><div class="e">(${cfg.mA}×${fs(sA)}×${f1(E.TA0)} + ${cfg.mB}×${fs(sB)}×100) ÷ (${cfg.mA}×${fs(sA)} + ${cfg.mB}×${fs(sB)})</div></div>
+  <div class="sum">放出熱量 ${fi(Math.abs(aGain?QB:QA))} 卡 ＝ 吸收熱量 ${fi(Math.abs(aGain?QA:QB))} 卡 ✔</div>`;
+}
+
+/* ---------- 繪圖 ---------- */
+const cv=$('ecv'),cx=cv.getContext('2d'),gcv=$('egc'),gx=gcv.getContext('2d');
+let A={w:1,h:1,d:1},G={w:1,h:1,d:1};
+const sz=c=>{const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);return {w:r.width,h:r.height,d}};
+const roE1=new ResizeObserver(()=>{A=sz(cv)});roE1.observe(cv);
+const roE2=new ResizeObserver(()=>{G=sz(gcv)});roE2.observe(gcv);
+const dark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
+/* ---------- 幾何與倒入動畫 ---------- */
+const GEO={aX:70,aW:140,bb:256,top:76,bX:345,bW:110,bH:140,bbB:380};
+const AR=0.7*134;               // 每 mL 在畫面上的面積（px²）
+const REST={x:GEO.bX,y:GEO.bbB-GEO.bH},POUR={x:GEO.aX+GEO.aW*0.64,y:GEO.top-18};
+const RAD=Math.PI/180,MAXT=105*RAD;
+const ease=k=>k<0.5?2*k*k:1-((-2*k+2)**2)/2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const toW=(an,x,y)=>({x:an.px+x*Math.cos(an.th)+y*Math.sin(an.th),y:an.py-x*Math.sin(an.th)+y*Math.cos(an.th)});
+function polyB(an){const w=GEO.bW,h=GEO.bH;return [[3,0],[w-3,0],[w-3,h-3],[3,h-3]].map(p=>toW(an,p[0],p[1]))}
+function areaBelow(poly,L){
+  const out=[];
+  for(let i=0;i<poly.length;i++){const p=poly[i],q=poly[(i+1)%poly.length],pi=p.y>=L,qi=q.y>=L;
+    if(pi)out.push(p);
+    if(pi!==qi){const t=(L-p.y)/(q.y-p.y);out.push({x:p.x+(q.x-p.x)*t,y:L})}}
+  let a=0;for(let i=0;i<out.length;i++){const p=out[i],q=out[(i+1)%out.length];a+=p.x*q.y-q.x*p.y}
+  return Math.abs(a)/2;
+}
+function surfaceY(poly,V){
+  let lo=Math.min(...poly.map(p=>p.y)),hi=Math.max(...poly.map(p=>p.y));
+  for(let i=0;i<28;i++){const m=(lo+hi)/2;if(areaBelow(poly,m)>V)lo=m;else hi=m}
+  return (lo+hi)/2;
+}
+const blockSize=()=>Math.cbrt(cfg.mB/OB[cfg.b].d)*13;
+function aSurface(){
+  const add=E.an?E.an.poured:(OB[cfg.b].liq&&E.phase!=='setup'?cfg.mB/OB[cfg.b].d*AR:0);
+  const total=cfg.mA/LQ[cfg.a].d*AR+add+dispArea();
+  return GEO.bb-3-total/(GEO.aW-6);
+}
+function dispArea(){
+  if(OB[cfg.b].liq||E.phase==='setup')return 0;
+  const s=blockSize(),full=cfg.mB/OB[cfg.b].d*AR*0.6;
+  if(E.an&&E.an.blk&&E.an.blk.st!=='done'){const b=E.an.blk;if(b.st!=='fall')return 0;
+    const base=GEO.bb-3-cfg.mA/LQ[cfg.a].d*AR/(GEO.aW-6);return full*clamp((b.y+s-base)/s,0,1)}
+  return full;
+}
+function startPour(){
+  const liq=!!OB[cfg.b].liq,s=blockSize();
+  E.an={k:'lift',t:0,th:0,px:REST.x,py:REST.y,rem:liq?cfg.mB/OB[cfg.b].d*AR:0,poured:0,flow:0,xfer:false,
+    blk:liq?null:{st:'in',lx:(GEO.bW-s)/2,ly:GEO.bH-3-s,x:0,y:0,vy:0,rot:0}};
+  E.rip=[];
+}
+function onXfer(){E.phase='mix';E.run=true;ui()}
+function anim(dt){
+  const a=E.an;a.t+=dt;
+  if(a.k==='lift'){const k=ease(Math.min(1,a.t/1));a.px=REST.x+(POUR.x-REST.x)*k;a.py=REST.y+(POUR.y-REST.y)*k-Math.sin(Math.PI*k)*45;if(a.t>=1){a.k='tilt';a.t=0}}
+  else if(a.k==='tilt'){const k=Math.min(1,a.t/2.6);a.th=MAXT*ease(k);if(k>=1){a.k='hold';a.t=0}}
+  else if(a.k==='hold'){if(a.xfer&&a.t>0.5){a.k='back';a.t=0}}
+  else if(a.k==='back'){const k=Math.min(1,a.t/1.6);
+    if(k<0.45){a.th=MAXT*(1-ease(k/0.45))}else{a.th=0;const m=ease((k-0.45)/0.55);a.px=POUR.x+(REST.x-POUR.x)*m;a.py=POUR.y+(REST.y-POUR.y)*m-Math.sin(Math.PI*m)*35}
+    if(k>=1){E.blkX=a.blk?a.blk.x:0;E.an=null;return}}
+  if(!a.blk){
+    const cap=areaBelow(polyB(a),toW(a,3,0).y),before=a.rem;
+    if(a.rem>cap)a.rem=Math.max(cap,a.rem-6500*dt);
+    a.flow=(before-a.rem)/Math.max(dt,1e-4);a.poured+=before-a.rem;
+    if(a.flow>0&&Math.random()<0.5)E.rip.push({x:toW(a,-6,-4).x-8+(Math.random()-.5)*10,t:0,r:3});
+    if(!a.xfer&&a.k!=='lift'&&a.rem<1){a.poured+=a.rem;a.rem=0;a.xfer=true;onXfer()}
+  }else{
+    const b=a.blk,s=blockSize(),d=a.th/RAD;
+    if(b.st==='in'){
+      b.lx=d<15?(GEO.bW-s)/2:(GEO.bW-s)/2+(4-(GEO.bW-s)/2)*clamp((d-15)/40,0,1);
+      const u=clamp((d-72)/28,0,1)**2;b.ly=(GEO.bH-3-s)-u*(GEO.bH+3);
+      if(u>=1){const c=toW(a,b.lx+s/2,b.ly+s/2);b.st='fall';b.x=c.x-s/2;b.y=c.y-s/2;b.vy=20;b.rot=a.th;b.wet=false}
+    }else if(b.st==='fall'){
+      const surf=GEO.bb-3-cfg.mA/LQ[cfg.a].d*AR/(GEO.aW-6);
+      b.vy+=1100*dt;
+      if(b.y+s>surf){if(!b.wet){b.wet=true;for(let i=0;i<3;i++)E.rip.push({x:b.x+s/2,t:-i*0.12,r:s*0.6})}b.vy=Math.min(b.vy,130)}
+      b.y+=b.vy*dt;b.x+=(GEO.aX+GEO.aW*0.58-s/2-b.x)*Math.min(1,dt*2.5);b.rot*=Math.max(0,1-dt*4);
+      if(b.y>=GEO.bb-3-s){b.y=GEO.bb-3-s;b.rot=0;b.st='done';if(!a.xfer){a.xfer=true;onXfer()}}
+    }
+  }
+}
+function beaker(c,bx,bw,bb,btop,dk,mute,k,right){
+  c.strokeStyle=dk?'#b9c6d3':'#6f7f90';c.lineWidth=3;c.lineJoin='round';
+  c.beginPath();c.moveTo(bx-6,btop-4);c.lineTo(bx,btop);c.lineTo(bx,bb-6);c.quadraticCurveTo(bx,bb,bx+6,bb);c.lineTo(bx+bw-6,bb);c.quadraticCurveTo(bx+bw,bb,bx+bw,bb-6);c.lineTo(bx+bw,btop);c.stroke();
+  c.fillStyle=dk?'rgba(200,220,240,.06)':'rgba(180,210,235,.12)';c.fillRect(bx,btop,bw,bb-btop);
+  c.strokeStyle=mute;c.lineWidth=1.2;c.fillStyle=mute;c.font='500 10px "Noto Sans TC",sans-serif';c.textAlign='left';c.textBaseline='middle';
+  for(let v=50;v*k<=bb-btop-8;v+=50){const y=bb-3-v*k;c.beginPath();
+    if(right){c.moveTo(bx+bw-3,y);c.lineTo(bx+bw-14,y);c.stroke();c.textAlign='right';c.fillText(v+' mL',bx+bw-17,y)}
+    else{c.moveTo(bx+3,y);c.lineTo(bx+14,y);c.stroke();c.fillText(v+' mL',bx+17,y)}}
+}
+function block(c,x,y,s,o,T){
+  c.fillStyle=o.side;rr(c,x,y,s,s,3);c.fill();
+  c.fillStyle=o.top;c.fillRect(x+2,y+2,s-4,Math.max(3,s*0.28));
+  const g=Math.max(0,Math.min(1,(T-30)/70));
+  if(g>0){c.fillStyle=`rgba(255,70,20,${0.42*g})`;rr(c,x,y,s,s,3);c.fill()}
+  c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=1;rr(c,x,y,s,s,3);c.stroke();
+}
+function drawApp(ts){
+  const c=cx,dk=dark(),ink=dk?'#e9edf1':'#16191d',mute=dk?'#9aa4b0':'#5b6470';
+  const BW=520,BH=570,sc=Math.min(A.w/BW,A.h/BH),ox=(A.w-BW*sc)/2,oy=(A.h-BH*sc)/2;
+  const base=()=>{c.setTransform(A.d*sc,0,0,A.d*sc,A.d*ox,A.d*(oy+70*sc))};
+  c.setTransform(A.d,0,0,A.d,0,0);c.clearRect(0,0,A.w,A.h);base();
+  const {aX,aW,bb,top,bX,bW,bH,bbB}=GEO,oA=LQ[cfg.a],oB=OB[cfg.b];
+  c.fillStyle=dk?'#23282f':'#e3e7eb';c.fillRect(-100,478,BW+200,22);
+  // 加熱器（A）
+  const hx=40,hy=340,hw=200,hh=138;
+  c.fillStyle=dk?'#2f3540':'#3b424d';rr(c,hx,hy,hw,hh,14);c.fill();
+  c.fillStyle='#0d1a10';rr(c,hx+18,hy+26,hw-36,52,8);c.fill();
+  c.fillStyle=E.heat?'#7dff9a':'#3e7a4b';c.font='700 24px "Noto Sans TC",sans-serif';c.textAlign='center';c.textBaseline='middle';
+  c.fillText(E.heat?cfg.P+' 卡/秒':'OFF',hx+hw/2,hy+53);
+  c.fillStyle='#c8ced6';c.font='500 13px "Noto Sans TC",sans-serif';c.fillText('加熱器',hx+hw/2,hy+108);
+  c.strokeStyle=dk?'#8d96a3':'#6b7380';c.lineWidth=4;c.lineCap='round';
+  c.beginPath();c.moveTo(70,262);c.lineTo(55,hy);c.moveTo(210,262);c.lineTo(225,hy);c.stroke();
+  c.fillStyle=dk?'#59616d':'#9aa2ad';c.fillRect(52,258,176,6);
+  if(E.heat){const fr=cfg.P/200,n=3+Math.round(fr*3);
+    for(let i=0;i<n;i++){const x=140+(i-(n-1)/2)*20,h=(16+55*fr)*(0.82+0.18*Math.sin(ts/85+i*1.9)),w=8+7*fr;
+      const g=c.createLinearGradient(0,hy,0,hy-h);g.addColorStop(0,'#2f6bff');g.addColorStop(0.18,'#ffd23f');g.addColorStop(0.6,'#ff7a1f');g.addColorStop(1,'rgba(255,60,20,0)');
+      c.fillStyle=g;c.beginPath();c.moveTo(x-w,hy);c.quadraticCurveTo(x-w*0.9,hy-h*0.55,x+Math.sin(ts/120+i)*3,hy-h);c.quadraticCurveTo(x+w*0.9,hy-h*0.55,x+w,hy);c.closePath();c.fill()}}
+  // 隔熱墊（B）
+  const px=300,pw=190;
+  c.fillStyle=dk?'#3a3027':'#b98b5e';rr(c,px,hy+40,pw,hh-40,10);c.fill();
+  c.fillStyle=dk?'#4a3d31':'#cfa277';rr(c,px,hy+40,pw,10,5);c.fill();
+  c.fillStyle='#fff';c.font='500 13px "Noto Sans TC",sans-serif';c.textAlign='center';c.fillText('隔熱墊',px+pw/2,hy+95);
+  // ---- 燒杯 A 內容 ----
+  const an=E.an,liqB=!!oB.liq,inner=aW-6;
+  const areaA=cfg.mA/oA.d*AR;
+  const poured=liqB?(an?an.poured:(E.phase==='setup'?0:cfg.mB/oB.d*AR)):0;
+  const surf=aSurface(),hTot=bb-3-surf;
+  if(hTot>0.5){
+    c.fillStyle=oA.fill;c.fillRect(aX+3,surf,inner,hTot);
+    if(poured>1){const hb=poured/inner;
+      if(cfg.a==='oil'&&cfg.b==='water'){c.fillStyle='rgba(47,141,228,.75)';c.fillRect(aX+3,bb-3-hb,inner,hb)}
+      else if(cfg.a==='oil'&&cfg.b==='alc'){c.fillStyle='rgba(160,130,230,.7)';c.fillRect(aX+3,surf,inner,hb)}
+      else{c.save();c.globalAlpha=clamp(poured/(areaA+poured),0,1);c.fillStyle=oB.fill;c.fillRect(aX+3,surf,inner,hTot);c.restore()}}
+    c.fillStyle='rgba(255,255,255,.35)';c.fillRect(aX+3,surf,inner,2);
+  }
+  // 波紋
+  if(E.rip){c.strokeStyle=dk?'rgba(220,235,255,.6)':'rgba(255,255,255,.9)';c.lineWidth=1.5;
+    for(let i=E.rip.length-1;i>=0;i--){const r=E.rip[i];r.t+=1/60;if(r.t>0.6){E.rip.splice(i,1);continue}if(r.t<0)continue;
+      c.globalAlpha=1-r.t/0.6;c.beginPath();c.ellipse(clamp(r.x,aX+12,aX+aW-12),surf+1,r.r+r.t*40,2+r.t*4,0,0,7);c.stroke();c.globalAlpha=1}}
+  // 已在 A 的金屬塊
+  const s=blockSize();
+  const blkDone=!liqB&&E.phase!=='setup'&&(!an||an.blk.st==='done');
+  if(blkDone){const x=an?an.blk.x:E.blkX;block(c,x,bb-3-s,s,oB,E.TB);
+    c.fillStyle=CB;c.font='700 12px "Noto Sans TC",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('B',x+s/2,bb-3-s-9)}
+  beaker(c,aX,aW,bb,top,dk,mute,0.7,true);
+  // 溫度計（A，靠左）
+  const tx=aX+24,tTop=70,tBot=238,tMin=0,tMax=cfg.a==='oil'?160:110;
+  const ty=T=>tBot-12-(T-tMin)/(tMax-tMin)*(tBot-12-tTop-8);
+  c.fillStyle=dk?'#e6edf3':'#fff';rr(c,tx-6,tTop,12,tBot-tTop,6);c.fill();c.strokeStyle=mute;c.lineWidth=1.5;c.stroke();
+  c.fillStyle='#e0302a';c.beginPath();c.arc(tx,tBot,9,0,7);c.fill();
+  const ct=ty(clamp(E.TA,tMin,tMax));c.fillRect(tx-2.5,ct,5,tBot-ct);
+  c.strokeStyle=mute;c.lineWidth=1;c.fillStyle=mute;c.font='500 10px "Noto Sans TC",sans-serif';c.textAlign='left';c.textBaseline='middle';
+  for(let v=0;v<=tMax;v+=10){const y=ty(v);c.beginPath();c.moveTo(tx+6,y);c.lineTo(tx+(v%50?9:12),y);c.stroke();if(v%50===0)c.fillText(v,tx+14,y)}
+  // ---- 燒杯 B（靜置或倒入中）----
+  const pose=an||{px:REST.x,py:REST.y,th:0};
+  const remB=an?an.rem:(E.phase==='setup'&&liqB?cfg.mB/oB.d*AR:0);
+  if(remB>0.5){const poly=polyB(pose),L=surfaceY(poly,remB);
+    c.save();c.translate(pose.px,pose.py);c.rotate(-pose.th);c.beginPath();c.rect(3,0,bW-6,bH-3);c.clip();base();
+    c.fillStyle=oB.fill;c.fillRect(-100,L,BW+200,600);c.fillStyle='rgba(255,255,255,.35)';c.fillRect(-100,L,BW+200,2);c.restore();base()}
+  if(!liqB&&cfg.mB>0&&(E.phase==='setup'||(an&&an.blk.st==='in'))){
+    const b=an?an.blk:{lx:(bW-s)/2,ly:bH-3-s};
+    c.save();c.translate(pose.px,pose.py);c.rotate(-pose.th);block(c,b.lx,b.ly,s,oB,T0B);c.restore();base()}
+  c.save();c.translate(pose.px,pose.py);c.rotate(-pose.th);beaker(c,0,bW,bH,0,dk,mute,AR/(bW-6));c.restore();base();
+  // 液流
+  if(an&&liqB&&an.flow>1){const lip=toW(an,-6,-4),w=clamp(an.flow/900,2,9);
+    c.strokeStyle=oB.fill;c.lineWidth=w;c.lineCap='round';c.beginPath();c.moveTo(lip.x,lip.y);c.quadraticCurveTo(lip.x-8,lip.y+14,lip.x-10,surf);c.stroke()}
+  // 掉落中的金屬塊
+  if(an&&an.blk&&an.blk.st==='fall'){const b=an.blk;c.save();c.translate(b.x+s/2,b.y+s/2);c.rotate(-b.rot);block(c,-s/2,-s/2,s,oB,E.TB);c.restore();base()}
+  // 讀數與標籤
+  c.textBaseline='middle';
+  c.fillStyle=dk?'#162236':'#eaf2ff';rr(c,aX-10,28,118,34,10);c.fill();c.strokeStyle=CA;c.lineWidth=1.5;c.stroke();
+  c.fillStyle=CA;c.font='900 18px "Noto Sans TC",sans-serif';c.textAlign='center';c.fillText('A '+f1(E.TA)+' °C',aX+49,45);
+  if(E.phase==='setup'&&!an){c.fillStyle=dk?'#2a1f1a':'#fff1ea';rr(c,bX-5,REST.y-54,120,34,10);c.fill();c.strokeStyle=CB;c.stroke();
+    c.fillStyle=CB;c.fillText('B '+f1(T0B)+' °C',bX+55,REST.y-37)}
+  c.fillStyle=ink;c.font='700 14px "Noto Sans TC",sans-serif';c.textAlign='left';
+  c.fillText(`燒杯 A：${oA.n} ${cfg.mA} g`,aX-10,12);
+  c.fillText(`燒杯 B：`+(cfg.mB>0?`${oB.n} ${cfg.mB} g`+(E.phase!=='setup'&&!an?'（已加入 A）':''):'空杯'),bX-25,REST.y-72);
+}
+function nice(r,m){const st=[1,2,5,10,20,25,50,100];return st.find(s=>r/s<=m)||100}
+function drawGraph(){
+  const c=gx,W=G.w,H=G.h,dk=dark(),mute=dk?'#9aa4b0':'#5b6470',line=dk?'#2b313a':'#e1e5ea',ink=dk?'#e9edf1':'#16191d';
+  c.setTransform(G.d,0,0,G.d,0,0);c.clearRect(0,0,W,H);
+  const L=48,R=14,T=14,B=38,pw=W-L-R,ph=H-T-B;
+  const tEnd=E.phase==='setup'||E.phase==='pour'?0:E.t;
+  const xr=Math.max(20,tEnd*1.1),xs=nice(xr,W<520?5:8),xMax=Math.ceil(xr/xs)*xs;
+  const all=E.pts.length?E.pts:[{A:E.TA,B:T0B}];
+  let lo=Math.min(...all.map(p=>Math.min(p.A,p.B))),hi=Math.max(...all.map(p=>Math.max(p.A,p.B)));
+  let ys=nice(hi-lo+10,7),yMin=Math.floor((lo-3)/ys)*ys,yMax=Math.ceil((hi+3)/ys)*ys;
+  const X=v=>L+v/xMax*pw,Y=v=>T+ph-(v-yMin)/(yMax-yMin)*ph;
+  c.strokeStyle=line;c.lineWidth=1;c.fillStyle=mute;c.font='500 12px "Noto Sans TC",sans-serif';c.textBaseline='middle';
+  for(let v=yMin;v<=yMax+1e-9;v+=ys){c.beginPath();c.moveTo(L,Y(v));c.lineTo(L+pw,Y(v));c.stroke();c.textAlign='right';c.fillText(v,L-6,Y(v))}
+  c.textBaseline='top';
+  for(let v=0;v<=xMax+1e-9;v+=xs){c.beginPath();c.moveTo(X(v),T);c.lineTo(X(v),T+ph);c.stroke();c.textAlign='center';c.fillText(v,X(v),T+ph+5)}
+  c.strokeStyle=ink;c.lineWidth=1.5;c.beginPath();c.moveTo(L,T);c.lineTo(L,T+ph);c.lineTo(L+pw,T+ph);c.stroke();
+  c.fillStyle=mute;c.textAlign='right';c.textBaseline='bottom';c.fillText('時間（秒）',L+pw,H-1);
+  c.save();c.translate(12,T+ph/2);c.rotate(-Math.PI/2);c.textAlign='center';c.textBaseline='middle';c.fillText('溫度（°C）',0,0);c.restore();
+  if(!E.pts.length){c.fillStyle=mute;c.textAlign='center';c.textBaseline='middle';c.font='500 14px "Noto Sans TC",sans-serif';c.fillText('按「開始加入」後開始記錄',L+pw/2,T+ph/2);return}
+  if(E.teq!==null){c.setLineDash([5,4]);c.strokeStyle=mute;c.beginPath();c.moveTo(L,Y(E.Tf));c.lineTo(L+pw,Y(E.Tf));c.stroke();c.setLineDash([]);
+    c.fillStyle=mute;c.textAlign='left';c.textBaseline='bottom';c.fillText('平衡溫度 '+f1(E.Tf)+' °C',L+6,Y(E.Tf)-3)}
+  for(const [k,col] of [['A',CA],['B',CB]]){
+    c.strokeStyle=col;c.lineWidth=2.5;c.lineJoin='round';c.beginPath();
+    E.pts.forEach((p,i)=>i?c.lineTo(X(p.t),Y(p[k])):c.moveTo(X(p.t),Y(p[k])));
+    if(E.phase==='mix'||E.phase==='done')c.lineTo(X(E.t),Y(k==='A'?E.TA:E.TB));c.stroke();
+    c.fillStyle=col;c.beginPath();c.arc(X(tEnd),Y(k==='A'?E.TA:E.TB),4,0,7);c.fill();
+  }
+}
+
+/* ---------- 事件 ---------- */
+document.querySelectorAll('#eAs button').forEach(b=>b.addEventListener('click',()=>{if(E.phase!=='setup'||E.heat)return;cfg.a=b.dataset.s;E.TA=E.TA0=T0A;if(cfg.target>LQ[cfg.a].max)cfg.target=LQ[cfg.a].max;hint('');ui()}));
+document.querySelectorAll('#eBs button').forEach(b=>b.addEventListener('click',()=>{if(E.phase!=='setup')return;cfg.b=b.dataset.s;ui()}));
+document.querySelectorAll('#espd button').forEach(b=>b.addEventListener('click',()=>{cfg.speed=+b.dataset.v;ui()}));
+$('emA').addEventListener('input',e=>{cfg.mA=+e.target.value;ui()});
+$('emB').addEventListener('input',e=>{cfg.mB=+e.target.value;ui()});
+$('etg').addEventListener('input',e=>{cfg.target=+e.target.value;ui()});
+$('epw').addEventListener('input',e=>{cfg.P=+e.target.value;ui()});
+$('eheatB').addEventListener('click',()=>{
+  if(E.phase!=='setup')return;
+  if(E.heat){E.heat=false;hint(`已停止加熱，燒杯 A 目前 ${f1(E.TA)} °C。`)}
+  else if(cfg.mA<=0)hint('燒杯 A 沒有液體，無法加熱。');
+  else if(cfg.target<=E.TA+0.05)hint('請先把「加熱到」的溫度調得比目前溫度高。');
+  else{E.heat=true;hint('')}
+  ui();
+});
+$('eStart').addEventListener('click',startMix);
+$('ePause').addEventListener('click',()=>{if(E.heat){E.heat=false;hint(`已暫停加熱，燒杯 A 目前 ${f1(E.TA)} °C。`)}E.run=false;ui()});
+$('eReset').addEventListener('click',eReset);
+
+let last=0;
+function frame(ts){
+  const dt=last?Math.min(0.1,(ts-last)/1000):0;last=ts;
+  tick(dt);
+  if(document.body.dataset.tab==='bal'){
+    $('eT').textContent=f1(E.phase==='setup'||E.phase==='pour'?0:E.t)+' 秒';
+    $('eA').textContent=f1(E.TA)+' °C';$('eB').textContent=f1(E.TB)+' °C';$('eS').textContent=stateLabel();
+    heatPanel();drawApp(ts);drawGraph();
+  }
+  requestAnimationFrame(frame);
+}
+eReset();
+requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
